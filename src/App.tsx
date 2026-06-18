@@ -126,8 +126,8 @@ function App() {
 
       <main className="flex-1 overflow-y-auto p-4 custom-scrollbar">
         {currentView === 'popup' && <PopupDashboard onNavigate={setCurrentView} data={productData} analysis={analysis} isLoading={isLoading} error={error} />}
-        {currentView === 'analysis' && <ProductAnalysis analysis={analysis} />}
-        {currentView === 'alternatives' && <Alternatives />}
+        {currentView === 'analysis' && <ProductAnalysis analysis={analysis} productData={productData} />}
+        {currentView === 'alternatives' && <Alternatives productData={productData} />}
         {currentView === 'impact' && <ImpactDashboard />}
         {currentView === 'settings' && <Settings />}
       </main>

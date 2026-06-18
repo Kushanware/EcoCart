@@ -1,6 +1,7 @@
 import { calculateLocalEcoScore } from './lib/rules';
 import { analyzeProduct, type EcoAnalysis } from './lib/gemini';
 import { getApiKey } from './lib/storage';
+import { detectMaterialFromSources, getAlternativesForProduct, getScoreInsights } from './lib/ecocart';
 
 // Extract data from product pages
 
@@ -44,6 +45,10 @@ function extractAmazonData(): Partial<ProductData> {
       .join(' > ');
   }
 
+  if (!material) {
+    material = detectMaterialFromSources(title, description, brand, category, document.body.innerText);
+  }
+
   return { title, price, brand, description, material, category };
 }
 
@@ -67,7 +72,7 @@ function extractFlipkartData(): Partial<ProductData> {
 
   let price = '';
   const allElements = document.querySelectorAll('div, span');
-  for (const el of allElements) {
+  for (const el of Array.from(allElements)) {
     const text = el.textContent?.trim() || '';
     if (/^₹[\d,]+$/.test(text) && text.length < 15) {
       price = text;
@@ -84,7 +89,7 @@ function extractFlipkartData(): Partial<ProductData> {
     const parentDiv = h1.closest('div');
     const siblingLinks = parentDiv?.querySelectorAll('a span, a');
     if (siblingLinks) {
-      for (const link of siblingLinks) {
+      for (const link of Array.from(siblingLinks)) {
         const text = link.textContent?.trim() || '';
         if (text.length > 1 && text.length < 40 && !text.includes('₹')) {
           brand = text;
@@ -127,14 +132,7 @@ function extractFlipkartData(): Partial<ProductData> {
     }
   }
   if (!material) {
-    const bodyText = document.body.innerText.toLowerCase();
-    const materialKeywords = ['sterling silver', 'silver plated', 'stainless steel', 'organic cotton', 'recycled', 'pvc', 'vinyl', 'polyester', 'cotton', 'bamboo', 'wood', 'steel', 'plastic', 'nylon', 'jute', 'leather', 'faux leather', 'silk', 'rubber', 'glass', 'aluminium', 'ceramic', 'gold', 'silver', 'platinum', 'copper', 'brass', 'alloy', 'hemp', 'linen'];
-    for (const kw of materialKeywords) {
-      if (bodyText.includes(kw)) {
-        material = kw;
-        break;
-      }
-    }
+    material = detectMaterialFromSources(title, description, brand, category, document.body.innerText);
   }
 
   let category = '';
@@ -336,7 +334,7 @@ function detectShoppingSite(): ShoppingSiteInfo {
 // Session key to track if user has dismissed the auto-open for this page
 const SESSION_DISMISSED_KEY = 'ecocart-auto-dismissed';
 
-function findProductInJsonLd(obj: any): any | null {
+function findProductInJsonLd(obj: Record<string, unknown> | unknown[] | unknown): Record<string, unknown> | null {
   if (!obj || typeof obj !== 'object') return null;
   if (obj['@type'] === 'Product' || obj['type'] === 'Product') return obj;
   if (Array.isArray(obj)) {
@@ -353,7 +351,7 @@ function findProductInJsonLd(obj: any): any | null {
   return null;
 }
 
-function extractGenericJsonLd(): any | null {
+function extractGenericJsonLd(): Record<string, unknown> | null {
   const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
   for (const script of scripts) {
     try {
@@ -457,14 +455,7 @@ function genericExtractor(): Partial<ProductData> {
     }
   }
   if (!material) {
-    const bodyText = document.body.innerText.toLowerCase();
-    const materialKeywords = ['sterling silver', 'silver plated', 'stainless steel', 'organic cotton', 'recycled', 'pvc', 'vinyl', 'polyester', 'cotton', 'bamboo', 'wood', 'steel', 'plastic', 'nylon', 'jute', 'leather', 'faux leather', 'silk', 'rubber', 'glass', 'aluminium', 'ceramic', 'gold', 'silver', 'platinum', 'copper', 'brass', 'alloy', 'hemp', 'linen'];
-    for (const kw of materialKeywords) {
-      if (bodyText.includes(kw)) {
-        material = kw;
-        break;
-      }
-    }
+    material = detectMaterialFromSources(title, description, brand, category, document.body.innerText);
   }
 
   // --- Category ---
@@ -695,19 +686,35 @@ function updateSidebarUI(product: Partial<ProductData>, analysis: EcoAnalysis) {
   // 8. Alternatives
   const altsList = shadow.getElementById('alts-list');
   if (altsList) {
-    const textToDetect = `${product.title || ''} ${product.description || ''} ${product.material || ''} ${product.category || ''}`.toLowerCase();
-    const category = detectCategory(textToDetect);
-    const alternatives = getAlternatives(category);
-    
+    const alternatives = getAlternativesForProduct(product);
+
     altsList.innerHTML = alternatives.map(alt => `
       <div class="alt-item">
-        <span class="alt-name">${alt.name}</span>
+        <div class="alt-copy">
+          <span class="alt-name">${alt.name}</span>
+          <div class="alt-reason">${alt.reason}</div>
+        </div>
         <span class="alt-score">${alt.score} Eco</span>
       </div>
     `).join('');
   }
 
-  // 9. Detailed Breakdown
+  // 9. Why this score
+  const whyList = shadow.getElementById('why-score-list');
+  if (whyList) {
+    const insights = getScoreInsights(product, analysis.scoreBreakdown || { materials: 0, durability: 0, packaging: 0, locality: 0, brandBonus: 0 });
+    whyList.innerHTML = insights.map(insight => `
+      <div class="why-score-item">
+        <div class="why-score-head">
+          <span class="why-score-label">${insight.label}</span>
+          <span class="why-score-value">+${insight.value}</span>
+        </div>
+        <div class="why-score-note">${insight.note}</div>
+      </div>
+    `).join('');
+  }
+
+  // 10. Detailed Breakdown
   const bd = analysis.scoreBreakdown || { materials: 0, durability: 0, packaging: 0, locality: 0, brandBonus: 0 };
   const updateBar = (id: string, value: number, max: number) => {
     const bar = shadow.getElementById(id);
@@ -1345,6 +1352,12 @@ function initEcoCart() {
       background: #f1f5f9;
     }
 
+    .alt-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
     .alt-name {
       font-size: 13px;
       font-weight: 600;
@@ -1358,6 +1371,54 @@ function initEcoCart() {
       color: #15803d;
       padding: 2px 8px;
       border-radius: 6px;
+    }
+
+    .alt-reason {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.35;
+    }
+
+    .why-score-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .why-score-item {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+
+    .why-score-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .why-score-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .why-score-value {
+      font-size: 12px;
+      font-weight: 800;
+      color: #15803d;
+      background: #dcfce7;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    .why-score-note {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.35;
     }
 
     .accordion-header {
@@ -1569,6 +1630,17 @@ function initEcoCart() {
           <div class="alt-list" id="alts-list"></div>
         </div>
 
+        <!-- Why This Score Accordion -->
+        <div class="ecocart-card">
+          <div class="accordion-header" id="acc-why-hdr">
+            <span>Why this score?</span>
+            <svg class="icon accordion-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </div>
+          <div class="accordion-content" id="acc-why-content">
+            <div id="why-score-list" class="why-score-list"></div>
+          </div>
+        </div>
+
         <!-- Detailed Analysis Accordion -->
         <div class="ecocart-card">
           <div class="accordion-header" id="acc-analysis-hdr">
@@ -1676,6 +1748,7 @@ function initEcoCart() {
     }
   };
   registerAccordion('acc-analysis-hdr', 'acc-analysis-content');
+  registerAccordion('acc-why-hdr', 'acc-why-content');
   registerAccordion('acc-settings-hdr', 'acc-settings-content');
 
   // Retry Button

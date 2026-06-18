@@ -1,9 +1,12 @@
 import { Leaf, Lightbulb, AlertTriangle, BarChart3 } from 'lucide-react';
 import { EcoScore } from '../components/ui/EcoScore';
+import type { ProductData } from '../content';
+import { getScoreInsights } from '../lib/ecocart';
 import type { EcoAnalysis } from '../lib/gemini';
 
 interface AnalysisProps {
   analysis: EcoAnalysis | null;
+  productData: Partial<ProductData> | null;
 }
 
 function BreakdownBar({ label, score, max, color }: { label: string; score: number; max: number; color: string }) {
@@ -19,10 +22,11 @@ function BreakdownBar({ label, score, max, color }: { label: string; score: numb
   );
 }
 
-export default function ProductAnalysis({ analysis }: AnalysisProps) {
+export default function ProductAnalysis({ analysis, productData }: AnalysisProps) {
   if (!analysis) return null;
 
   const bd = analysis.scoreBreakdown;
+  const scoreInsights = getScoreInsights(productData, bd);
 
   return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-500 pb-10">
@@ -54,6 +58,27 @@ export default function ProductAnalysis({ analysis }: AnalysisProps) {
           <span className="text-lg font-bold text-slate-800 dark:text-slate-100">{analysis.ecoScore}/100</span>
         </div>
       </div>
+
+      <details className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-100 dark:border-slate-800">
+        <summary className="flex items-center justify-between cursor-pointer list-none gap-2">
+          <div className="flex items-center gap-2">
+            <Lightbulb className="w-5 h-5 text-yellow-500" />
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100">Why this score?</h3>
+          </div>
+          <span className="text-xs text-slate-500 dark:text-slate-400">Tap to expand</span>
+        </summary>
+        <div className="mt-4 space-y-3">
+          {scoreInsights.map((insight) => (
+            <div key={insight.label} className="rounded-lg bg-slate-50 dark:bg-slate-800/70 p-3 border border-slate-100 dark:border-slate-700">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{insight.label}</span>
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">+{insight.value}</span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{insight.note}</p>
+            </div>
+          ))}
+        </div>
+      </details>
 
       {analysis.concerns.length > 0 && (
         <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border border-red-100 dark:border-red-800/30">

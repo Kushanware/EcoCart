@@ -59,6 +59,8 @@ EcoCart uses a **Hybrid Architecture** prioritizing speed, reliability, and expl
 
 EcoCart AI works on **any e-commerce website** through smart detection. It has enhanced support for these platforms:
 
+Commonly supported stores include Amazon, Flipkart, Meesho, Myntra, Ajio, and Nykaa, along with many other major shopping sites.
+
 | Region | Sites |
 |--------|-------|
 | 🇮🇳 India | Amazon.in, Flipkart, Myntra, AJIO, Meesho, Snapdeal, Nykaa, Tata CLiQ, JioMart, Croma, Reliance Digital, Lenskart, Bewakoof, FirstCry, Purplle, BigBasket, Blinkit, Zepto |

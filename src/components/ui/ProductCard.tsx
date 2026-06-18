@@ -7,9 +7,10 @@ interface ProductCardProps {
   brand: string;
   score: number;
   price: string;
+  reason?: string;
 }
 
-export function ProductCard({ title, brand, score, price }: ProductCardProps) {
+export function ProductCard({ title, brand, score, price, reason }: ProductCardProps) {
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 hover:border-eco-300 transition-colors cursor-pointer group">
       <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
@@ -21,6 +22,7 @@ export function ProductCard({ title, brand, score, price }: ProductCardProps) {
         <span className="text-xs text-slate-500 font-medium">{brand}</span>
         <h3 className="text-sm font-bold text-slate-800 leading-tight mb-1">{title}</h3>
         <span className="text-sm font-semibold text-slate-600">{price}</span>
+        {reason && <p className="text-xs text-slate-500 mt-1 leading-snug">{reason}</p>}
       </div>
 
       <div className="flex flex-col items-end gap-2">
