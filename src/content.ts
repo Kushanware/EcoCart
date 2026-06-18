@@ -128,7 +128,7 @@ function extractFlipkartData(): Partial<ProductData> {
   }
   if (!material) {
     const bodyText = document.body.innerText.toLowerCase();
-    const materialKeywords = ['pvc', 'vinyl', 'polyester', 'cotton', 'organic cotton', 'bamboo', 'wood', 'steel', 'plastic', 'nylon', 'jute', 'leather', 'silk', 'rubber', 'glass', 'aluminium', 'ceramic'];
+    const materialKeywords = ['sterling silver', 'silver plated', 'stainless steel', 'organic cotton', 'recycled', 'pvc', 'vinyl', 'polyester', 'cotton', 'bamboo', 'wood', 'steel', 'plastic', 'nylon', 'jute', 'leather', 'faux leather', 'silk', 'rubber', 'glass', 'aluminium', 'ceramic', 'gold', 'silver', 'platinum', 'copper', 'brass', 'alloy', 'hemp', 'linen'];
     for (const kw of materialKeywords) {
       if (bodyText.includes(kw)) {
         material = kw;
@@ -458,7 +458,7 @@ function genericExtractor(): Partial<ProductData> {
   }
   if (!material) {
     const bodyText = document.body.innerText.toLowerCase();
-    const materialKeywords = ['pvc', 'vinyl', 'polyester', 'cotton', 'organic cotton', 'bamboo', 'wood', 'steel', 'plastic', 'nylon', 'jute', 'leather', 'silk', 'rubber', 'glass', 'aluminium', 'ceramic'];
+    const materialKeywords = ['sterling silver', 'silver plated', 'stainless steel', 'organic cotton', 'recycled', 'pvc', 'vinyl', 'polyester', 'cotton', 'bamboo', 'wood', 'steel', 'plastic', 'nylon', 'jute', 'leather', 'faux leather', 'silk', 'rubber', 'glass', 'aluminium', 'ceramic', 'gold', 'silver', 'platinum', 'copper', 'brass', 'alloy', 'hemp', 'linen'];
     for (const kw of materialKeywords) {
       if (bodyText.includes(kw)) {
         material = kw;
@@ -489,66 +489,77 @@ function genericExtractor(): Partial<ProductData> {
 }
 
 // ─── Better Alternatives helpers ───
+
+const CATEGORY_ALTERNATIVES: Record<string, { name: string; score: number; reason: string }[]> = {
+  jewelry: [
+    { name: 'Mejuri', score: 88, reason: 'Recycled gold & ethical sourcing' },
+    { name: 'Brilliant Earth', score: 92, reason: 'Conflict-free & lab-grown gems' },
+    { name: 'Soko', score: 90, reason: 'Fair-trade artisan jewelry' },
+    { name: 'Catbird', score: 85, reason: 'Recycled metals & ethical gems' },
+    { name: 'Aurate', score: 86, reason: 'Sustainably sourced gold' },
+  ],
+  fashion: [
+    { name: 'Patagonia', score: 92, reason: 'Recycled materials & fair trade' },
+    { name: 'Tentree', score: 88, reason: 'Plants 10 trees per purchase' },
+    { name: 'Pact', score: 85, reason: 'Organic cotton & fair trade' },
+    { name: 'Allbirds', score: 87, reason: 'Natural materials & carbon neutral' },
+    { name: 'Pangaia', score: 84, reason: 'Bio-based & recycled fabrics' },
+  ],
+  electronics: [
+    { name: 'Fairphone', score: 90, reason: 'Modular design & fair materials' },
+    { name: 'Framework Laptop', score: 85, reason: 'User-repairable & upgradeable' },
+    { name: 'Teracube', score: 78, reason: '4-year warranty & repairable' },
+  ],
+  stationery: [
+    { name: 'Karst Stone Paper', score: 88, reason: 'Tree-free waterproof paper' },
+    { name: 'Onyx + Green', score: 85, reason: 'Recycled & plant-based materials' },
+    { name: 'Decomposition Book', score: 82, reason: '100% recycled paper' },
+  ],
+  kitchen: [
+    { name: 'Klean Kanteen', score: 90, reason: 'Stainless steel & B Corp certified' },
+    { name: 'Stasher', score: 88, reason: 'Reusable silicone replaces plastic' },
+    { name: 'Hydro Flask', score: 85, reason: 'Durable & eliminates single-use' },
+  ],
+  gardening: [
+    { name: 'Organic Compost Co.', score: 90, reason: '100% organic & chemical-free' },
+    { name: 'Earthworm Technologies', score: 88, reason: 'Vermicompost for soil health' },
+    { name: 'Coco Coir Peat', score: 85, reason: 'Sustainable coconut byproduct' },
+  ],
+  cleaning: [
+    { name: 'Seventh Generation', score: 88, reason: 'Plant-based & biodegradable' },
+    { name: 'Ecover', score: 86, reason: 'Recycled packaging & plant-based' },
+    { name: 'Method', score: 85, reason: 'Recycled bottles & clean formulas' },
+  ],
+  personal_care: [
+    { name: 'Ethique', score: 92, reason: 'Plastic-free solid bars' },
+    { name: "Dr. Bronner's", score: 90, reason: 'Organic & fair trade certified' },
+    { name: 'Bite Toothpaste Bits', score: 88, reason: 'Zero-waste tablets' },
+  ],
+  home_decor: [
+    { name: 'Avocado Green Mattress', score: 90, reason: 'Organic latex & wool' },
+    { name: 'Coyuchi', score: 88, reason: 'Organic cotton textiles' },
+    { name: 'Viva Terra', score: 85, reason: 'Reclaimed & natural materials' },
+  ],
+  furniture: [
+    { name: 'Medley', score: 88, reason: 'FSC-certified & non-toxic' },
+    { name: 'Sabai', score: 86, reason: 'Recycled & upcycled materials' },
+    { name: 'Inside Weather', score: 84, reason: 'Made-to-order, zero waste' },
+  ],
+  general: [
+    { name: 'Patagonia', score: 90, reason: 'Industry leader in sustainability' },
+    { name: 'Seventh Generation', score: 85, reason: 'Plant-based household products' },
+    { name: "Dr. Bronner's", score: 88, reason: 'Organic & fair trade certified' },
+  ],
+};
+
 function getAlternatives(category: string) {
-  switch (category) {
-    case 'fashion':
-      return [
-        { name: 'Patagonia', score: 92 },
-        { name: 'Tentree', score: 88 },
-        { name: 'Pact', score: 85 }
-      ];
-    case 'electronics':
-      return [
-        { name: 'Fairphone', score: 90 },
-        { name: 'Framework Laptop', score: 85 },
-        { name: 'Teracube', score: 78 }
-      ];
-    case 'stationery':
-      return [
-        { name: 'Karst Stone Paper', score: 88 },
-        { name: 'Onyx + Green', score: 85 },
-        { name: 'Decomposition Book', score: 82 }
-      ];
-    case 'kitchen':
-      return [
-        { name: 'Klean Kanteen', score: 90 },
-        { name: 'Hydro Flask', score: 85 },
-        { name: 'Stasher', score: 88 }
-      ];
-    case 'gardening':
-      return [
-        { name: 'Organic Compost Co.', score: 90 },
-        { name: 'Earthworm Technologies', score: 88 },
-        { name: 'Coco Coir Peat', score: 85 }
-      ];
-    case 'cleaning':
-      return [
-        { name: 'Seventh Generation', score: 88 },
-        { name: 'Method', score: 85 },
-        { name: 'Ecover', score: 86 }
-      ];
-    case 'personal_care':
-      return [
-        { name: 'Ethique', score: 92 },
-        { name: 'Dr. Bronner\'s', score: 90 },
-        { name: 'Bite Toothpaste Bits', score: 88 }
-      ];
-    case 'home_decor':
-      return [
-        { name: 'Avocado Green Mattress', score: 90 },
-        { name: 'Viva Terra', score: 85 },
-        { name: 'Coyuchi', score: 88 }
-      ];
-    default:
-      return [
-        { name: 'Patagonia', score: 90 },
-        { name: 'Seventh Generation', score: 85 },
-        { name: 'Dr. Bronner\'s', score: 88 }
-      ];
-  }
+  const alts = CATEGORY_ALTERNATIVES[category] || CATEGORY_ALTERNATIVES['general'];
+  return alts.slice(0, 3).map(a => ({ name: a.name, score: a.score }));
 }
 
 function detectCategory(text: string): string {
+  if (text.includes('anklet') || text.includes('bracelet') || text.includes('necklace') || text.includes('ring') || text.includes('earring') || text.includes('pendant') || text.includes('chain') || text.includes('bangle') || text.includes('jewel') || text.includes('jewelry') || text.includes('jewellery') || text.includes('mangalsutra') || text.includes('nose pin') || text.includes('toe ring'))
+    return 'jewelry';
   if (text.includes('shirt') || text.includes('clothing') || text.includes('fashion') || text.includes('apparel') || text.includes('dress') || text.includes('jacket') || text.includes('shoe') || text.includes('sneaker') || text.includes('jeans') || text.includes('sweater') || text.includes('hoodie'))
     return 'fashion';
   if (text.includes('electronic') || text.includes('phone') || text.includes('charger') || text.includes('cable') || text.includes('computer') || text.includes('laptop') || text.includes('appliance') || text.includes('headphone') || text.includes('speaker'))

@@ -209,6 +209,70 @@ describe('Rule Engine V5 — Sustainability Scoring', () => {
       expect(a.waterUsage).toBe('Low');
     });
 
+    it('Sterling Silver Anklet → 50-70', () => {
+      const a = calculateLocalEcoScore({
+        title: 'Sterling Silver Anklet',
+        description: 'Handcrafted sterling silver anklet for women',
+        material: 'Sterling Silver',
+      });
+
+      expect(a.ecoScore).toBeGreaterThanOrEqual(50);
+      expect(a.ecoScore).toBeLessThanOrEqual(70);
+      expect(
+        a.strengths.some(s =>
+          s.toLowerCase().includes('silver')
+        )
+      ).toBe(true);
+    });
+
+    it('Gold Necklace → 50-70', () => {
+      const a = calculateLocalEcoScore({
+        title: 'Gold Pendant Necklace',
+        description: 'Beautiful 18k gold necklace pendant',
+        material: 'Gold',
+      });
+
+      expect(a.ecoScore).toBeGreaterThanOrEqual(50);
+      expect(a.ecoScore).toBeLessThanOrEqual(70);
+      expect(
+        a.strengths.some(s =>
+          s.toLowerCase().includes('gold')
+        )
+      ).toBe(true);
+    });
+
+    it('Alloy Bracelet → 30-50', () => {
+      const a = calculateLocalEcoScore({
+        title: 'Metal Alloy Bracelet',
+        description: 'Fashion alloy bracelet with beads',
+        material: 'Alloy',
+      });
+
+      expect(a.ecoScore).toBeGreaterThanOrEqual(30);
+      expect(a.ecoScore).toBeLessThanOrEqual(50);
+      expect(
+        a.concerns.some(c =>
+          c.toLowerCase().includes('alloy')
+        )
+      ).toBe(true);
+    });
+
+    it('Leather Bag → 35-55', () => {
+      const a = calculateLocalEcoScore({
+        title: 'Genuine Leather Tote Bag',
+        description: 'Handcrafted leather tote bag',
+        material: 'Leather',
+      });
+
+      expect(a.ecoScore).toBeGreaterThanOrEqual(35);
+      expect(a.ecoScore).toBeLessThanOrEqual(55);
+      expect(
+        a.strengths.some(s =>
+          s.toLowerCase().includes('leather')
+        )
+      ).toBe(true);
+    });
+
   });
 
   describe('Ranking validation', () => {

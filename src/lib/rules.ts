@@ -9,6 +9,8 @@ const POSITIVE_MATERIALS: [string, number, string][] = [
   ['organic fertilizer', 50, '✓ Organic fertilizer supports sustainable agriculture'],
   ['organic cotton', 50, '✓ Organic cotton grown without toxic pesticides'],
   ['stainless steel', 45, '✓ Stainless steel is durable and highly recyclable'],
+  ['sterling silver', 35, '✓ Sterling silver is durable and recyclable'],
+  ['silver plated', 20, '✓ Silver plating extends product life'],
   ['recycled paper', 40, '✓ Recycled paper reduces deforestation'],
   ['recycled plastic', 20, '✓ Recycled plastic diverts waste from landfills'],
   ['fsc certified', 45, '✓ FSC certified for responsible forestry'],
@@ -27,6 +29,11 @@ const POSITIVE_MATERIALS: [string, number, string][] = [
   ['manure', 40, '✓ Natural manure reduces synthetic fertilizer use'],
   ['organic', 20, '✓ Organic materials reduce chemical pollution'],
   ['glass', 50, '✓ Glass is infinitely recyclable'],
+  ['platinum', 35, '✓ Platinum is highly durable and recyclable'],
+  ['gold', 35, '✓ Gold can be recycled indefinitely'],
+  ['silver', 30, '✓ Silver is recyclable and has lasting value'],
+  ['copper', 30, '✓ Copper is naturally antimicrobial and recyclable'],
+  ['brass', 25, '✓ Brass is a durable and recyclable alloy'],
   ['sheesham', 45, '✓ Sheesham is a durable, long-lasting hardwood'],
   ['teak', 45, '✓ Teak wood is extremely durable and sustainable'],
   ['aluminium', 30, '✓ Aluminium is lightweight and widely recyclable'],
@@ -35,6 +42,8 @@ const POSITIVE_MATERIALS: [string, number, string][] = [
   ['wood', 40, '✓ Wood is a renewable natural material'],
   ['steel', 40, '✓ Steel is highly durable and recyclable'],
   ['ceramic', 30, '✓ Ceramic is a natural, long-lasting material'],
+  ['leather', 20, '✓ Genuine leather is durable and long-lasting'],
+  ['silk', 25, '✓ Silk is a natural, biodegradable fiber'],
   ['gobar', 45, '✓ Gobar manure improves soil naturally'],
   ['cotton', 10, ''],
 ];
@@ -49,6 +58,9 @@ const NEGATIVE_MATERIALS: [string, number, string][] = [
   ['microfiber', 5, '⚠ Microfiber sheds microplastics when washed'],
   ['spandex', 5, '⚠ Spandex is a petroleum-based synthetic'],
   ['elastane', 5, '⚠ Elastane is a petroleum-based synthetic'],
+  ['alloy', 15, '⚠ Mixed metal alloy may be difficult to recycle'],
+  ['rubber', 15, '⚠ Synthetic rubber is petroleum-based'],
+  ['faux leather', 10, '⚠ Faux leather is typically made from plastics'],
   ['plastic', 10, '⚠ Plastic components detected'],
 ];
 
@@ -75,11 +87,15 @@ const SUSTAINABLE_BRANDS = [
   'patagonia', 'allbirds', 'tentree', 'pact', 'coyuchi',
   'eileen fisher', 'outerknown', 'veja', 'toms', 'seventh generation',
   'method', 'cariuma', 'pangaia', 'girlfriend collective', 'thought', 'people tree',
+  'mejuri', 'catbird', 'brilliant earth', 'vrai', 'aurate',
+  'soko', 'able', 'nisolo', 'matt & nat', 'stella mccartney',
 ];
 
-type ProductCategory = 'fashion' | 'electronics' | 'stationery' | 'home_decor' | 'kitchen' | 'gardening' | 'cleaning' | 'personal_care' | 'general';
+type ProductCategory = 'fashion' | 'jewelry' | 'electronics' | 'stationery' | 'home_decor' | 'kitchen' | 'gardening' | 'cleaning' | 'personal_care' | 'general';
 
 function detectCategory(text: string): ProductCategory {
+  if (text.includes('anklet') || text.includes('bracelet') || text.includes('necklace') || text.includes('ring') || text.includes('earring') || text.includes('pendant') || text.includes('chain') || text.includes('bangle') || text.includes('jewel') || text.includes('jewelry') || text.includes('jewellery') || text.includes('mangalsutra') || text.includes('nose pin') || text.includes('toe ring'))
+    return 'jewelry';
   if (text.includes('shirt') || text.includes('clothing') || text.includes('fashion') || text.includes('apparel') || text.includes('dress') || text.includes('jacket') || text.includes('shoe') || text.includes('sneaker') || text.includes('jeans') || text.includes('sweater') || text.includes('hoodie'))
     return 'fashion';
   if (text.includes('electronic') || text.includes('phone') || text.includes('charger') || text.includes('cable') || text.includes('computer') || text.includes('laptop') || text.includes('appliance') || text.includes('headphone') || text.includes('speaker'))
