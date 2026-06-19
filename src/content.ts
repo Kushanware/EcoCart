@@ -3,6 +3,13 @@ import { analyzeProduct, type EcoAnalysis } from './lib/gemini';
 import { getApiKey } from './lib/storage';
 import { detectMaterialFromSources, getAlternativesForProduct, getScoreInsights } from './lib/ecocart';
 
+// Sanitize strings before injecting into innerHTML to prevent XSS
+function escapeHtml(str: string): string {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 // Extract data from product pages
 
 export interface ProductData {
@@ -116,25 +123,6 @@ function extractFlipkartData(): Partial<ProductData> {
     description = metaDesc?.getAttribute('content')?.trim() || '';
   }
 
-  let material = '';
-  const allRows = document.querySelectorAll('table tr, div[class] > div[class] > div[class]');
-  for (const row of allRows) {
-    const cells = row.querySelectorAll('td, div');
-    if (cells.length >= 2) {
-      const label = cells[0].textContent?.toLowerCase().trim() || '';
-      const value = cells[1].textContent?.trim() || '';
-      if (label.includes('material') || label.includes('fabric') || label.includes('type')) {
-        if (value.length > 1 && value.length < 200) {
-          material = value;
-          break;
-        }
-      }
-    }
-  }
-  if (!material) {
-    material = detectMaterialFromSources(title, description, brand, category, document.body.innerText);
-  }
-
   let category = '';
   const breadcrumbContainers = document.querySelectorAll('div[class]');
   for (const container of breadcrumbContainers) {
@@ -152,6 +140,25 @@ function extractFlipkartData(): Partial<ProductData> {
     if (pathParts.length > 0) {
       category = pathParts[0].replace(/-/g, ' ');
     }
+  }
+
+  let material = '';
+  const allRows = document.querySelectorAll('table tr, div[class] > div[class] > div[class]');
+  for (const row of allRows) {
+    const cells = row.querySelectorAll('td, div');
+    if (cells.length >= 2) {
+      const label = cells[0].textContent?.toLowerCase().trim() || '';
+      const value = cells[1].textContent?.trim() || '';
+      if (label.includes('material') || label.includes('fabric') || label.includes('type')) {
+        if (value.length > 1 && value.length < 200) {
+          material = value;
+          break;
+        }
+      }
+    }
+  }
+  if (!material) {
+    material = detectMaterialFromSources(title, description, brand, category, document.body.innerText);
   }
 
   return { title, price, brand, description, material, category };
@@ -334,17 +341,18 @@ function detectShoppingSite(): ShoppingSiteInfo {
 // Session key to track if user has dismissed the auto-open for this page
 const SESSION_DISMISSED_KEY = 'ecocart-auto-dismissed';
 
-function findProductInJsonLd(obj: Record<string, unknown> | unknown[] | unknown): Record<string, unknown> | null {
+function findProductInJsonLd(obj: unknown): Record<string, unknown> | null {
   if (!obj || typeof obj !== 'object') return null;
-  if (obj['@type'] === 'Product' || obj['type'] === 'Product') return obj;
+  const record = obj as Record<string, unknown>;
+  if (record['@type'] === 'Product' || record['type'] === 'Product') return record;
   if (Array.isArray(obj)) {
     for (const item of obj) {
       const found = findProductInJsonLd(item);
       if (found) return found;
     }
   } else {
-    for (const key of Object.keys(obj)) {
-      const found = findProductInJsonLd(obj[key]);
+    for (const key of Object.keys(record)) {
+      const found = findProductInJsonLd(record[key]);
       if (found) return found;
     }
   }
@@ -371,7 +379,7 @@ function genericExtractor(): Partial<ProductData> {
   // --- Title ---
   let title = '';
   if (jsonLd?.name) {
-    title = jsonLd.name;
+    title = String(jsonLd.name);
   } else {
     title = document.querySelector('meta[property="og:title"]')?.getAttribute('content')?.trim() ||
             document.querySelector('meta[name="twitter:title"]')?.getAttribute('content')?.trim() ||
@@ -385,7 +393,7 @@ function genericExtractor(): Partial<ProductData> {
   // --- Description ---
   let description = '';
   if (jsonLd?.description) {
-    description = jsonLd.description;
+    description = String(jsonLd.description);
   } else {
     description = document.querySelector('meta[property="og:description"]')?.getAttribute('content')?.trim() ||
                   document.querySelector('meta[name="description"]')?.getAttribute('content')?.trim() ||
@@ -401,8 +409,8 @@ function genericExtractor(): Partial<ProductData> {
   if (jsonLd?.brand) {
     if (typeof jsonLd.brand === 'string') {
       brand = jsonLd.brand;
-    } else if (typeof jsonLd.brand === 'object') {
-      brand = jsonLd.brand.name || '';
+    } else if (typeof jsonLd.brand === 'object' && jsonLd.brand !== null) {
+      brand = String((jsonLd.brand as Record<string, unknown>).name || '');
     }
   }
   if (!brand) {
@@ -418,9 +426,11 @@ function genericExtractor(): Partial<ProductData> {
   if (jsonLd?.offers) {
     const offers = jsonLd.offers;
     if (Array.isArray(offers)) {
-      price = offers[0]?.price || offers[0]?.priceRange || '';
-    } else if (typeof offers === 'object') {
-      price = offers.price || offers.priceRange || '';
+      const first = offers[0] as Record<string, unknown> | undefined;
+      price = String(first?.price || first?.priceRange || '');
+    } else if (typeof offers === 'object' && offers !== null) {
+      const offersRecord = offers as Record<string, unknown>;
+      price = String(offersRecord.price || offersRecord.priceRange || '');
     }
   }
   if (!price) {
@@ -432,10 +442,28 @@ function genericExtractor(): Partial<ProductData> {
             '';
   }
 
+  // --- Category ---
+  let category = '';
+  if (jsonLd?.category) {
+    category = String(jsonLd.category);
+  }
+  if (!category) {
+    const breadcrumbs = Array.from(document.querySelectorAll('.breadcrumb, .breadcrumbs, [class*="breadcrumb"]'));
+    if (breadcrumbs.length > 0) {
+      category = breadcrumbs[0].textContent?.replace(/\s+/g, ' ').trim() || '';
+    }
+  }
+  if (!category) {
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    if (pathParts.length > 0) {
+      category = pathParts[0].replace(/-/g, ' ');
+    }
+  }
+
   // --- Material ---
   let material = '';
   if (jsonLd?.material) {
-    material = jsonLd.material;
+    material = String(jsonLd.material);
   }
   if (!material) {
     // Search elements containing material text
@@ -458,117 +486,10 @@ function genericExtractor(): Partial<ProductData> {
     material = detectMaterialFromSources(title, description, brand, category, document.body.innerText);
   }
 
-  // --- Category ---
-  let category = '';
-  if (jsonLd?.category) {
-    category = jsonLd.category;
-  }
-  if (!category) {
-    const breadcrumbs = Array.from(document.querySelectorAll('.breadcrumb, .breadcrumbs, [class*="breadcrumb"]'));
-    if (breadcrumbs.length > 0) {
-      category = breadcrumbs[0].textContent?.replace(/\s+/g, ' ').trim() || '';
-    }
-  }
-  if (!category) {
-    const pathParts = window.location.pathname.split('/').filter(Boolean);
-    if (pathParts.length > 0) {
-      category = pathParts[0].replace(/-/g, ' ');
-    }
-  }
-
   return { title, price, brand, description, material, category };
 }
 
-// ─── Better Alternatives helpers ───
 
-const CATEGORY_ALTERNATIVES: Record<string, { name: string; score: number; reason: string }[]> = {
-  jewelry: [
-    { name: 'Mejuri', score: 88, reason: 'Recycled gold & ethical sourcing' },
-    { name: 'Brilliant Earth', score: 92, reason: 'Conflict-free & lab-grown gems' },
-    { name: 'Soko', score: 90, reason: 'Fair-trade artisan jewelry' },
-    { name: 'Catbird', score: 85, reason: 'Recycled metals & ethical gems' },
-    { name: 'Aurate', score: 86, reason: 'Sustainably sourced gold' },
-  ],
-  fashion: [
-    { name: 'Patagonia', score: 92, reason: 'Recycled materials & fair trade' },
-    { name: 'Tentree', score: 88, reason: 'Plants 10 trees per purchase' },
-    { name: 'Pact', score: 85, reason: 'Organic cotton & fair trade' },
-    { name: 'Allbirds', score: 87, reason: 'Natural materials & carbon neutral' },
-    { name: 'Pangaia', score: 84, reason: 'Bio-based & recycled fabrics' },
-  ],
-  electronics: [
-    { name: 'Fairphone', score: 90, reason: 'Modular design & fair materials' },
-    { name: 'Framework Laptop', score: 85, reason: 'User-repairable & upgradeable' },
-    { name: 'Teracube', score: 78, reason: '4-year warranty & repairable' },
-  ],
-  stationery: [
-    { name: 'Karst Stone Paper', score: 88, reason: 'Tree-free waterproof paper' },
-    { name: 'Onyx + Green', score: 85, reason: 'Recycled & plant-based materials' },
-    { name: 'Decomposition Book', score: 82, reason: '100% recycled paper' },
-  ],
-  kitchen: [
-    { name: 'Klean Kanteen', score: 90, reason: 'Stainless steel & B Corp certified' },
-    { name: 'Stasher', score: 88, reason: 'Reusable silicone replaces plastic' },
-    { name: 'Hydro Flask', score: 85, reason: 'Durable & eliminates single-use' },
-  ],
-  gardening: [
-    { name: 'Organic Compost Co.', score: 90, reason: '100% organic & chemical-free' },
-    { name: 'Earthworm Technologies', score: 88, reason: 'Vermicompost for soil health' },
-    { name: 'Coco Coir Peat', score: 85, reason: 'Sustainable coconut byproduct' },
-  ],
-  cleaning: [
-    { name: 'Seventh Generation', score: 88, reason: 'Plant-based & biodegradable' },
-    { name: 'Ecover', score: 86, reason: 'Recycled packaging & plant-based' },
-    { name: 'Method', score: 85, reason: 'Recycled bottles & clean formulas' },
-  ],
-  personal_care: [
-    { name: 'Ethique', score: 92, reason: 'Plastic-free solid bars' },
-    { name: "Dr. Bronner's", score: 90, reason: 'Organic & fair trade certified' },
-    { name: 'Bite Toothpaste Bits', score: 88, reason: 'Zero-waste tablets' },
-  ],
-  home_decor: [
-    { name: 'Avocado Green Mattress', score: 90, reason: 'Organic latex & wool' },
-    { name: 'Coyuchi', score: 88, reason: 'Organic cotton textiles' },
-    { name: 'Viva Terra', score: 85, reason: 'Reclaimed & natural materials' },
-  ],
-  furniture: [
-    { name: 'Medley', score: 88, reason: 'FSC-certified & non-toxic' },
-    { name: 'Sabai', score: 86, reason: 'Recycled & upcycled materials' },
-    { name: 'Inside Weather', score: 84, reason: 'Made-to-order, zero waste' },
-  ],
-  general: [
-    { name: 'Patagonia', score: 90, reason: 'Industry leader in sustainability' },
-    { name: 'Seventh Generation', score: 85, reason: 'Plant-based household products' },
-    { name: "Dr. Bronner's", score: 88, reason: 'Organic & fair trade certified' },
-  ],
-};
-
-function getAlternatives(category: string) {
-  const alts = CATEGORY_ALTERNATIVES[category] || CATEGORY_ALTERNATIVES['general'];
-  return alts.slice(0, 3).map(a => ({ name: a.name, score: a.score }));
-}
-
-function detectCategory(text: string): string {
-  if (text.includes('anklet') || text.includes('bracelet') || text.includes('necklace') || text.includes('ring') || text.includes('earring') || text.includes('pendant') || text.includes('chain') || text.includes('bangle') || text.includes('jewel') || text.includes('jewelry') || text.includes('jewellery') || text.includes('mangalsutra') || text.includes('nose pin') || text.includes('toe ring'))
-    return 'jewelry';
-  if (text.includes('shirt') || text.includes('clothing') || text.includes('fashion') || text.includes('apparel') || text.includes('dress') || text.includes('jacket') || text.includes('shoe') || text.includes('sneaker') || text.includes('jeans') || text.includes('sweater') || text.includes('hoodie'))
-    return 'fashion';
-  if (text.includes('electronic') || text.includes('phone') || text.includes('charger') || text.includes('cable') || text.includes('computer') || text.includes('laptop') || text.includes('appliance') || text.includes('headphone') || text.includes('speaker'))
-    return 'electronics';
-  if (text.includes('pen') || text.includes('notebook') || text.includes('stationery') || text.includes('pencil') || text.includes('diary') || text.includes('journal') || text.includes('paper') || text.includes('office supplies'))
-    return 'stationery';
-  if (text.includes('wallpaper') || text.includes('curtain') || text.includes('rug') || text.includes('carpet') || text.includes('decor') || text.includes('candle') || text.includes('furniture') || text.includes('lamp') || text.includes('wardrobe'))
-    return 'home_decor';
-  if (text.includes('bottle') || text.includes('kitchen') || text.includes('utensil') || text.includes('cookware') || text.includes('mug') || text.includes('cup') || text.includes('container') || text.includes('toothbrush') || text.includes('brush'))
-    return 'kitchen';
-  if (text.includes('fertilizer') || text.includes('manure') || text.includes('gobar') || text.includes('compost') || text.includes('soil') || text.includes('plant') || text.includes('garden') || text.includes('seed'))
-    return 'gardening';
-  if (text.includes('cleaner') || text.includes('detergent') || text.includes('soap') || text.includes('wash') || text.includes('mop') || text.includes('broom'))
-    return 'cleaning';
-  if (text.includes('shampoo') || text.includes('lotion') || text.includes('cream') || text.includes('serum') || text.includes('toothpaste') || text.includes('oil'))
-    return 'personal_care';
-  return 'general';
-}
 
 // ─── Sidebar Overlay Creation & UI population ───
 
@@ -669,7 +590,7 @@ function updateSidebarUI(product: Partial<ProductData>, analysis: EcoAnalysis) {
     strengthsList.innerHTML = analysis.strengths.map(s => `
       <div class="bullet-item strength">
         <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #16a34a; min-width: 16px; margin-top: 2px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-        <span>${s}</span>
+        <span>${escapeHtml(s)}</span>
       </div>
     `).join('');
   }
@@ -678,7 +599,7 @@ function updateSidebarUI(product: Partial<ProductData>, analysis: EcoAnalysis) {
     concernsList.innerHTML = analysis.concerns.map(c => `
       <div class="bullet-item concern">
         <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #d97706; min-width: 16px; margin-top: 2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-        <span>${c}</span>
+        <span>${escapeHtml(c)}</span>
       </div>
     `).join('');
   }
@@ -691,8 +612,8 @@ function updateSidebarUI(product: Partial<ProductData>, analysis: EcoAnalysis) {
     altsList.innerHTML = alternatives.map(alt => `
       <div class="alt-item">
         <div class="alt-copy">
-          <span class="alt-name">${alt.name}</span>
-          <div class="alt-reason">${alt.reason}</div>
+          <span class="alt-name">${escapeHtml(alt.name)}</span>
+          <div class="alt-reason">${escapeHtml(alt.reason)}</div>
         </div>
         <span class="alt-score">${alt.score} Eco</span>
       </div>
@@ -706,10 +627,10 @@ function updateSidebarUI(product: Partial<ProductData>, analysis: EcoAnalysis) {
     whyList.innerHTML = insights.map(insight => `
       <div class="why-score-item">
         <div class="why-score-head">
-          <span class="why-score-label">${insight.label}</span>
+          <span class="why-score-label">${escapeHtml(insight.label)}</span>
           <span class="why-score-value">+${insight.value}</span>
         </div>
-        <div class="why-score-note">${insight.note}</div>
+        <div class="why-score-note">${escapeHtml(insight.note)}</div>
       </div>
     `).join('');
   }
@@ -782,7 +703,7 @@ async function runAnalysis() {
           ecoData.scoreBreakdown = { materials: 0, durability: 0, packaging: 0, locality: 0, brandBonus: 0 };
         }
       } catch (err) {
-        console.warn('Gemini API failed, falling back to local rule engine.', err);
+        // Gemini failed — silently fall back to local rule engine
         ecoData = calculateLocalEcoScore(data);
       }
     } else {
@@ -790,8 +711,8 @@ async function runAnalysis() {
     }
 
     updateSidebarUI(data, ecoData);
-  } catch (err: any) {
-    showSidebarError(err.message || 'An unexpected error occurred.');
+  } catch (err: unknown) {
+    showSidebarError(err instanceof Error ? err.message : 'An unexpected error occurred.');
   }
 }
 
@@ -1543,6 +1464,9 @@ function initEcoCart() {
   // Launcher DOM
   const launcher = document.createElement('div');
   launcher.id = 'ecocart-launcher';
+  launcher.setAttribute('role', 'button');
+  launcher.setAttribute('aria-label', 'Open EcoCart Sidebar');
+  launcher.setAttribute('tabindex', '0');
   launcher.innerHTML = `
     <span>🌿</span>
     <div id="ecocart-launcher-badge" style="display: none;"></div>
@@ -1558,7 +1482,7 @@ function initEcoCart() {
         <span style="font-size: 20px; margin-right: 8px;">🌿</span>
         <span>EcoCart AI</span>
       </div>
-      <button id="ecocart-close">&times;</button>
+      <button id="ecocart-close" aria-label="Close EcoCart Sidebar">&times;</button>
     </div>
     
     <div class="ecocart-body">
@@ -1573,8 +1497,8 @@ function initEcoCart() {
         <span style="font-size: 32px; color: #ef4444; margin-bottom: 8px;">⚠</span>
         <h4 style="margin-bottom: 6px; color: #991b1b; font-weight: 600; font-size: 14px;">Analysis Failed</h4>
         <p id="ecocart-error-msg" style="font-size: 12px; color: #b91c1c; margin-bottom: 16px; line-height: 1.4;"></p>
-        <button id="ecocart-retry-btn" class="ecocart-btn" style="width: 100%;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        <button id="ecocart-retry-btn" class="ecocart-btn" style="width: 100%;" aria-label="Retry Product Analysis">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
           Retry Extraction
         </button>
       </div>
@@ -1696,16 +1620,16 @@ function initEcoCart() {
             <div class="settings-form">
               <div>
                 <label class="form-label" style="display: block; margin-bottom: 6px;">Analysis Engine</label>
-                <select id="ecocart-method-mode" class="ecocart-input">
+                <select id="ecocart-method-mode" class="ecocart-input" aria-label="Select Analysis Engine">
                   <option value="local">Local Rules Engine</option>
                   <option value="gemini">AI Analysis (Gemini API)</option>
                 </select>
               </div>
               <div>
                 <label class="form-label" style="display: block; margin-bottom: 6px;">Gemini API Key</label>
-                <input type="password" id="ecocart-api-key" class="ecocart-input" placeholder="Enter API Key..." />
+                <input type="password" id="ecocart-api-key" class="ecocart-input" placeholder="Enter API Key..." aria-label="Gemini API Key" />
               </div>
-              <button id="ecocart-save-settings" class="ecocart-btn" style="width: 100%;">Save Settings</button>
+              <button id="ecocart-save-settings" class="ecocart-btn" style="width: 100%;" aria-label="Save Settings">Save Settings</button>
               <div id="ecocart-settings-status" style="display: none; font-size: 11px; text-align: center; margin-top: 4px; font-weight: 500;"></div>
             </div>
           </div>
@@ -1817,7 +1741,7 @@ function initEcoCart() {
       const toast = document.createElement('div');
       toast.className = 'ecocart-toast';
       toast.innerHTML = `
-        <div class="toast-close" id="ecocart-toast-close">&times;</div>
+        <div class="toast-close" id="ecocart-toast-close" role="button" aria-label="Dismiss notification" tabindex="0">&times;</div>
         <div class="toast-icon">🛒</div>
         <div class="toast-content">
           <div class="toast-title">Shopping Site Detected</div>
@@ -1827,7 +1751,7 @@ function initEcoCart() {
             <span class="toast-stat"><span class="toast-stat-icon">${shoppingInfo.isProductPage ? '✅' : '🔍'}</span> ${shoppingInfo.isProductPage ? 'Product page' : 'Shopping site'}</span>
           </div>
         </div>
-        ${!shoppingInfo.isProductPage ? '<button class="toast-action" id="ecocart-toast-action">View Stats</button>' : ''}
+        ${!shoppingInfo.isProductPage ? '<button class="toast-action" id="ecocart-toast-action" aria-label="View shopping statistics">View Stats</button>' : ''}
       `;
       shadow.appendChild(toast);
 

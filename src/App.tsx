@@ -28,7 +28,7 @@ function App() {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const activeTab = tabs[0];
       if (activeTab?.id) {
-        const handleResponse = async (response: any) => {
+        const handleResponse = async (response: Partial<ProductData> | null | undefined) => {
           if (!response || !response.title) {
             setError('Could not find a product on this page. Please navigate to a specific product page.');
             setIsLoading(false);
@@ -46,7 +46,7 @@ function App() {
                 ecoData.scoreBreakdown = { materials: 0, durability: 0, packaging: 0, locality: 0, brandBonus: 0 };
               }
             } catch (apiErr) {
-              console.warn('Gemini API failed or missing, falling back to local rule engine.', apiErr);
+              // Gemini API failed or missing — silently fall back to local rule engine
               ecoData = calculateLocalEcoScore(response);
             }
             
@@ -58,8 +58,8 @@ function App() {
               productsAnalyzed: 1,
               greenChoices: ecoData.ecoScore >= 70 ? 1 : 0
             });
-          } catch (err: any) {
-            setError(err.message || 'Analysis failed.');
+          } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Analysis failed.');
           } finally {
             setIsLoading(false);
           }
@@ -82,7 +82,7 @@ function App() {
                 handleResponse(retryResponse);
               });
             } catch (injectError) {
-              console.error('Failed to inject script:', injectError);
+              // Failed to inject content script
               setError('Could not connect to the page. Please refresh the page and try again.');
               setIsLoading(false);
             }

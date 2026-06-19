@@ -67,7 +67,6 @@ Return ONLY a valid JSON object matching this schema exactly:
     const textResponse = result.candidates[0].content.parts[0].text;
     return JSON.parse(textResponse) as EcoAnalysis;
   } catch (error) {
-    console.error('Gemini API Error:', error);
     throw error;
   }
 }
