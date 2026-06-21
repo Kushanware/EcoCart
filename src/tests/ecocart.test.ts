@@ -24,6 +24,16 @@ describe('EcoCart helpers', () => {
     expect(detectMaterialFromSources('polyester shirt')).toBe('polyester');
   });
 
+  it('detects wood materials from product text', () => {
+    expect(detectMaterialFromSources('Sheesham wood table')).toBe('sheesham');
+    expect(detectMaterialFromSources('solid oak cabinet')).toBe('oak');
+  });
+
+  it('detects glass and ceramic from product text', () => {
+    expect(detectMaterialFromSources('glass water bottle')).toBe('glass');
+    expect(detectMaterialFromSources('ceramic coffee mug')).toBe('ceramic');
+  });
+
   it('builds readable score insights', () => {
     const insights = getScoreInsights(
       {

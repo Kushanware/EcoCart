@@ -45,28 +45,24 @@ Return ONLY a valid JSON object matching this schema exactly:
 }
 `;
 
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json"
-        }
-      })
-    });
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json"
+      }
+    })
+  });
 
-    if (!res.ok) {
-      throw new Error('Failed to fetch from Gemini API');
-    }
-
-    const result = await res.json();
-    const textResponse = result.candidates[0].content.parts[0].text;
-    return JSON.parse(textResponse) as EcoAnalysis;
-  } catch (error) {
-    throw error;
+  if (!res.ok) {
+    throw new Error('Failed to fetch from Gemini API');
   }
+
+  const result = await res.json();
+  const textResponse = result.candidates[0].content.parts[0].text;
+  return JSON.parse(textResponse) as EcoAnalysis;
 }

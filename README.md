@@ -4,6 +4,9 @@
 
 # 🌿 EcoCart AI
 
+![Tests](https://img.shields.io/badge/tests-36%20passing-brightgreen)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
+![Chrome Extension](https://img.shields.io/badge/MV3-Chrome-orange)
 **EcoCart AI** is a Chrome Extension that calculates the environmental footprint of products while you shop online, helping you make greener choices. Built for the PromptWars Hackathon, it runs **totally locally** with a robust, deterministic rule engine to deliver reliable sustainability scoring. It also features an **optional Gemini AI integration**—if you provide an API key, it unlocks deeper, natural language insights.
 
 ---

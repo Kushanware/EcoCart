@@ -98,9 +98,11 @@ const CATEGORY_ALTERNATIVES: Record<ProductCategory, AlternativeSuggestion[]> = 
     { name: 'Decomposition Book', score: 82, reason: '100% recycled paper' },
   ],
   kitchen: [
-    { name: 'Klean Kanteen', score: 90, reason: 'Stainless steel & B Corp certified' },
-    { name: 'Stasher', score: 88, reason: 'Reusable silicone replaces plastic' },
-    { name: 'Hydro Flask', score: 85, reason: 'Durable & eliminates single-use' },
+    { name: 'Stainless Steel Container', score: 85, reason: 'Highly durable & infinitely recyclable' },
+    { name: 'Glass Storage Jar', score: 80, reason: 'Infinitely recyclable & non-toxic' },
+    { name: 'Borosilicate Glass Container', score: 82, reason: 'Durable glass & microwave safe' },
+    { name: 'Bamboo Storage Box', score: 88, reason: 'Rapidly renewable & biodegradable' },
+    { name: 'Recycled Steel Container', score: 90, reason: 'Made from recycled materials' },
   ],
   gardening: [
     { name: 'Organic Compost Co.', score: 90, reason: '100% organic & chemical-free' },
@@ -123,9 +125,9 @@ const CATEGORY_ALTERNATIVES: Record<ProductCategory, AlternativeSuggestion[]> = 
     { name: 'Viva Terra', score: 85, reason: 'Reclaimed & natural materials' },
   ],
   furniture: [
-    { name: 'Medley', score: 88, reason: 'FSC-certified & non-toxic' },
-    { name: 'Sabai', score: 86, reason: 'Recycled & upcycled materials' },
-    { name: 'Inside Weather', score: 84, reason: 'Made-to-order, zero waste' },
+    { name: 'Bamboo Furniture', score: 88, reason: 'Rapidly renewable & biodegradable' },
+    { name: 'FSC Certified Wood Chair', score: 86, reason: 'Responsibly sourced & durable' },
+    { name: 'Recycled Plastic Chair', score: 84, reason: 'Diverts waste from landfills' },
   ],
   general: [
     { name: 'Patagonia', score: 90, reason: 'Industry leader in sustainability' },
@@ -137,36 +139,16 @@ const CATEGORY_ALTERNATIVES: Record<ProductCategory, AlternativeSuggestion[]> = 
 export function detectProductCategoryFromText(text: string): ProductCategory {
   const value = text.toLowerCase();
 
-  if (value.includes('anklet') || value.includes('bracelet') || value.includes('necklace') || value.includes('ring') || value.includes('earring') || value.includes('pendant') || value.includes('chain') || value.includes('bangle') || value.includes('jewel') || value.includes('jewelry') || value.includes('jewellery') || value.includes('mangalsutra') || value.includes('nose pin') || value.includes('toe ring')) {
-    return 'jewelry';
-  }
-  if (value.includes('shirt') || value.includes('clothing') || value.includes('fashion') || value.includes('apparel') || value.includes('dress') || value.includes('jacket') || value.includes('shoe') || value.includes('sneaker') || value.includes('jeans') || value.includes('sweater') || value.includes('hoodie') || value.includes('t-shirt')) {
-    return 'fashion';
-  }
-  if (value.includes('electronic') || value.includes('phone') || value.includes('charger') || value.includes('cable') || value.includes('computer') || value.includes('laptop') || value.includes('appliance') || value.includes('headphone') || value.includes('speaker') || value.includes('tablet')) {
-    return 'electronics';
-  }
-  if (value.includes('pen') || value.includes('notebook') || value.includes('stationery') || value.includes('pencil') || value.includes('diary') || value.includes('journal') || value.includes('paper') || value.includes('office supplies')) {
-    return 'stationery';
-  }
-  if (value.includes('wallpaper') || value.includes('curtain') || value.includes('rug') || value.includes('carpet') || value.includes('decor') || value.includes('candle') || value.includes('home decor') || value.includes('lamp') || value.includes('wardrobe') || value.includes('mattress')) {
-    return 'home_decor';
-  }
-  if (value.includes('chair') || value.includes('sofa') || value.includes('table') || value.includes('desk') || value.includes('couch') || value.includes('bookshelf') || value.includes('furniture') || value.includes('cabinet') || value.includes('bed frame')) {
-    return 'furniture';
-  }
-  if (value.includes('bottle') || value.includes('kitchen') || value.includes('utensil') || value.includes('cookware') || value.includes('mug') || value.includes('cup') || value.includes('container') || value.includes('toothbrush') || value.includes('brush')) {
-    return 'kitchen';
-  }
-  if (value.includes('fertilizer') || value.includes('manure') || value.includes('gobar') || value.includes('compost') || value.includes('soil') || value.includes('plant') || value.includes('garden') || value.includes('seed')) {
-    return 'gardening';
-  }
-  if (value.includes('cleaner') || value.includes('detergent') || value.includes('soap') || value.includes('wash') || value.includes('mop') || value.includes('broom')) {
-    return 'cleaning';
-  }
-  if (value.includes('shampoo') || value.includes('lotion') || value.includes('cream') || value.includes('serum') || value.includes('toothpaste') || value.includes('oil')) {
-    return 'personal_care';
-  }
+  if (/\b(anklet|bracelet|necklace|ring|earring|pendant|chain|bangle|jewel|jewelry|jewellery|mangalsutra|nose\spin|toe\sring)\b/.test(value)) return 'jewelry';
+  if (/\b(shirt|clothing|fashion|apparel|dress|jacket|shoe|sneaker|jeans|sweater|hoodie|t-shirt)\b/.test(value)) return 'fashion';
+  if (/\b(electronic|phone|charger|cable|computer|laptop|appliance|headphone|speaker|tablet)\b/.test(value)) return 'electronics';
+  if (/\b(pen|notebook|stationery|pencil|diary|journal|paper|office\ssupplies)\b/.test(value)) return 'stationery';
+  if (/\b(wallpaper|curtain|rug|carpet|decor|candle|home\sdecor|lamp|wardrobe|mattress)\b/.test(value)) return 'home_decor';
+  if (/\b(chair|sofa|table|desk|couch|bookshelf|furniture|cabinet|bed\sframe)\b/.test(value)) return 'furniture';
+  if (/\b(bottle|kitchen|utensil|cookware|mug|cup|container|toothbrush|brush)\b/.test(value)) return 'kitchen';
+  if (/\b(fertilizer|manure|gobar|compost|soil|plant|garden|seed)\b/.test(value)) return 'gardening';
+  if (/\b(cleaner|detergent|soap|wash|mop|broom)\b/.test(value)) return 'cleaning';
+  if (/\b(shampoo|lotion|cream|serum|toothpaste|oil)\b/.test(value)) return 'personal_care';
 
   return 'general';
 }

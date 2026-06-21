@@ -12,7 +12,7 @@ const POSITIVE_MATERIALS: [string, number, string][] = [
   ['sterling silver', 35, '✓ Sterling silver is durable and recyclable'],
   ['silver plated', 20, '✓ Silver plating extends product life'],
   ['recycled paper', 40, '✓ Recycled paper reduces deforestation'],
-  ['recycled plastic', 20, '✓ Recycled plastic diverts waste from landfills'],
+  ['recycled plastic', 30, '✓ Recycled plastic diverts waste from landfills'],
   ['fsc certified', 45, '✓ FSC certified for responsible forestry'],
   ['recycled', 35, '✓ Contains recycled materials'],
   ['upcycled', 25, '✓ Uses upcycled materials to reduce waste'],
@@ -91,27 +91,22 @@ const SUSTAINABLE_BRANDS = [
   'soko', 'able', 'nisolo', 'matt & nat', 'stella mccartney',
 ];
 
-type ProductCategory = 'fashion' | 'jewelry' | 'electronics' | 'stationery' | 'home_decor' | 'kitchen' | 'gardening' | 'cleaning' | 'personal_care' | 'general';
+type ProductCategory = 'fashion' | 'jewelry' | 'electronics' | 'stationery' | 'home_decor' | 'kitchen' | 'gardening' | 'cleaning' | 'personal_care' | 'furniture' | 'general';
 
 function detectCategory(text: string): ProductCategory {
-  if (text.includes('anklet') || text.includes('bracelet') || text.includes('necklace') || text.includes('ring') || text.includes('earring') || text.includes('pendant') || text.includes('chain') || text.includes('bangle') || text.includes('jewel') || text.includes('jewelry') || text.includes('jewellery') || text.includes('mangalsutra') || text.includes('nose pin') || text.includes('toe ring'))
-    return 'jewelry';
-  if (text.includes('shirt') || text.includes('clothing') || text.includes('fashion') || text.includes('apparel') || text.includes('dress') || text.includes('jacket') || text.includes('shoe') || text.includes('sneaker') || text.includes('jeans') || text.includes('sweater') || text.includes('hoodie'))
-    return 'fashion';
-  if (text.includes('electronic') || text.includes('phone') || text.includes('charger') || text.includes('cable') || text.includes('computer') || text.includes('laptop') || text.includes('appliance') || text.includes('headphone') || text.includes('speaker'))
-    return 'electronics';
-  if (text.includes('pen') || text.includes('notebook') || text.includes('stationery') || text.includes('pencil') || text.includes('diary') || text.includes('journal') || text.includes('paper') || text.includes('office supplies'))
-    return 'stationery';
-  if (text.includes('wallpaper') || text.includes('curtain') || text.includes('rug') || text.includes('carpet') || text.includes('decor') || text.includes('candle') || text.includes('furniture') || text.includes('lamp') || text.includes('wardrobe'))
-    return 'home_decor';
-  if (text.includes('bottle') || text.includes('kitchen') || text.includes('utensil') || text.includes('cookware') || text.includes('mug') || text.includes('cup') || text.includes('container') || text.includes('toothbrush') || text.includes('brush'))
-    return 'kitchen';
-  if (text.includes('fertilizer') || text.includes('manure') || text.includes('gobar') || text.includes('compost') || text.includes('soil') || text.includes('plant') || text.includes('garden') || text.includes('seed'))
-    return 'gardening';
-  if (text.includes('cleaner') || text.includes('detergent') || text.includes('soap') || text.includes('wash') || text.includes('mop') || text.includes('broom'))
-    return 'cleaning';
-  if (text.includes('shampoo') || text.includes('lotion') || text.includes('cream') || text.includes('serum') || text.includes('toothpaste') || text.includes('oil'))
-    return 'personal_care';
+  const value = text.toLowerCase();
+
+  if (/\b(anklet|bracelet|necklace|ring|earring|pendant|chain|bangle|jewel|jewelry|jewellery|mangalsutra|nose\spin|toe\sring)\b/.test(value)) return 'jewelry';
+  if (/\b(shirt|clothing|fashion|apparel|dress|jacket|shoe|sneaker|jeans|sweater|hoodie|t-shirt)\b/.test(value)) return 'fashion';
+  if (/\b(electronic|phone|charger|cable|computer|laptop|appliance|headphone|speaker|tablet)\b/.test(value)) return 'electronics';
+  if (/\b(pen|notebook|stationery|pencil|diary|journal|paper|office\ssupplies)\b/.test(value)) return 'stationery';
+  if (/\b(wallpaper|curtain|rug|carpet|decor|candle|home\sdecor|lamp|wardrobe|mattress)\b/.test(value)) return 'home_decor';
+  if (/\b(chair|sofa|table|desk|couch|bookshelf|furniture|cabinet|bed\sframe)\b/.test(value)) return 'furniture';
+  if (/\b(bottle|kitchen|utensil|cookware|mug|cup|container|toothbrush|brush)\b/.test(value)) return 'kitchen';
+  if (/\b(fertilizer|manure|gobar|compost|soil|plant|garden|seed)\b/.test(value)) return 'gardening';
+  if (/\b(cleaner|detergent|soap|wash|mop|broom)\b/.test(value)) return 'cleaning';
+  if (/\b(shampoo|lotion|cream|serum|toothpaste|oil)\b/.test(value)) return 'personal_care';
+
   return 'general';
 }
 
@@ -141,30 +136,42 @@ export function calculateLocalEcoScore(data: Partial<ProductData>): EcoAnalysis 
   let materialsScore = 10; // Unknown baseline
   let primaryMatchKeyword = '';
 
-  // 1. Check positive materials (first match wins)
-  for (const [keyword, score, label] of POSITIVE_MATERIALS) {
-    if (textToAnalyze.includes(keyword)) {
-      materialsScore = score;
-      primaryMatchKeyword = keyword;
-      if (label) strengths.push(label);
-      if (keyword === 'cotton') {
-        concerns.push('⚠ Conventional cotton is water-intensive to produce');
-      }
-      break;
+  // Helper to find material in a given text
+  const findMaterialMatch = (text: string) => {
+    for (const [keyword, score, label] of POSITIVE_MATERIALS) {
+      if (text.includes(keyword)) return { keyword, score, label, isPositive: true };
+    }
+    for (const [keyword, score, label] of NEGATIVE_MATERIALS) {
+      if (text.includes(keyword)) return { keyword, score, label, isPositive: false };
+    }
+    return null;
+  };
+
+  // 1. High priority: check Title and explicit Material field first
+  const highPriorityText = `${data.title || ''} ${data.material || ''}`.toLowerCase();
+  let match = findMaterialMatch(highPriorityText);
+
+  // 2. Fallback to full description if nothing found in title
+  if (!match) {
+    match = findMaterialMatch(textToAnalyze);
+  }
+
+  if (match) {
+    primaryMatchKeyword = match.keyword;
+    materialsScore = match.score;
+    if (match.label) {
+      if (match.isPositive) strengths.push(match.label);
+      else concerns.push(match.label);
+    }
+    if (match.keyword === 'cotton') {
+      concerns.push('⚠ Conventional cotton is water-intensive to produce');
     }
   }
 
-  // 2. If no positive found, check negatives
-  if (!primaryMatchKeyword) {
-    for (const [keyword, score, label] of NEGATIVE_MATERIALS) {
-      if (textToAnalyze.includes(keyword)) {
-        materialsScore = score;
-        primaryMatchKeyword = keyword;
-        if (label) concerns.push(label);
-        break;
-      }
-    }
-  }
+  console.log("EcoCart AI Extraction Debug:");
+  console.log("Product Title:", data.title);
+  console.log("Description:", data.description ? data.description.substring(0, 150) + "..." : "None");
+  console.log("Detected Material:", primaryMatchKeyword || "None");
 
   // 3. Apply eco bonus keywords (skip if same as primary match), cap materials at 60
   for (const [keyword, bonus] of ECO_BONUS_KEYWORDS) {

@@ -273,6 +273,55 @@ describe('Rule Engine V5 — Sustainability Scoring', () => {
       ).toBe(true);
     });
 
+    it('Title priority over description (Plastic vs Sheesham)', () => {
+      const a = calculateLocalEcoScore({
+        title: 'AVRO FURNITURE Plastic Chair',
+        description: 'Other customers also bought Sheesham wood chair',
+      });
+      expect(a.ecoScore).toBeLessThan(55);
+      expect(a.concerns.some(c => c.toLowerCase().includes('plastic'))).toBe(true);
+    });
+
+    it('Title priority over description (Steel vs Plastic)', () => {
+      const a = calculateLocalEcoScore({
+        title: 'Stainless Steel Water Bottle',
+        description: 'Comes with a small plastic cap',
+      });
+      expect(a.ecoScore).toBeGreaterThanOrEqual(70);
+    });
+
+    it('Missing data gracefully handles edge case', () => {
+      const a = calculateLocalEcoScore({});
+      expect(a.ecoScore).toBeGreaterThanOrEqual(10);
+      expect(a.confidence).toBe('Low');
+    });
+
+    it('Cotton edge case returns water concern', () => {
+      const a = calculateLocalEcoScore({
+        title: 'Basic Cotton T-Shirt',
+        material: 'Cotton'
+      });
+      expect(a.concerns.some(c => c.toLowerCase().includes('water-intensive'))).toBe(true);
+    });
+
+    it('Eco-bonus keywords add points correctly', () => {
+      const base = calculateLocalEcoScore({ title: 'Standard Bottle', material: 'Glass' });
+      const eco = calculateLocalEcoScore({ title: 'Standard Bottle', material: 'Glass', description: 'reusable biodegradable compostable' });
+      expect(eco.ecoScore).toBeGreaterThan(base.ecoScore);
+    });
+
+    it('Negative keywords deduct points correctly', () => {
+      const base = calculateLocalEcoScore({ title: 'Basic Shirt', material: 'Cotton' });
+      const bad = calculateLocalEcoScore({ title: 'Basic Shirt', material: 'Cotton', description: 'toxic chemicals single-use' });
+      expect(bad.ecoScore).toBeLessThan(base.ecoScore);
+    });
+
+    it('Cap check: Eco score does not drop below 0', () => {
+      const bad = calculateLocalEcoScore({ title: 'Plastic bag', description: 'single-use toxic chemicals disposable waste' });
+      expect(bad.ecoScore).toBeGreaterThanOrEqual(0);
+    });
+
+
   });
 
   describe('Ranking validation', () => {

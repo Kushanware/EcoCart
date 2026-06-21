@@ -366,7 +366,7 @@ function extractGenericJsonLd(): Record<string, unknown> | null {
       const json = JSON.parse(script.textContent || '');
       const productObj = findProductInJsonLd(json);
       if (productObj) return productObj;
-    } catch (e) {
+    } catch {
       // ignore parsing errors
     }
   }
@@ -377,7 +377,7 @@ function genericExtractor(): Partial<ProductData> {
   const jsonLd = extractGenericJsonLd();
 
   // --- Title ---
-  let title = '';
+  let title: string;
   if (jsonLd?.name) {
     title = String(jsonLd.name);
   } else {
@@ -391,7 +391,7 @@ function genericExtractor(): Partial<ProductData> {
   }
 
   // --- Description ---
-  let description = '';
+  let description: string;
   if (jsonLd?.description) {
     description = String(jsonLd.description);
   } else {
@@ -702,7 +702,7 @@ async function runAnalysis() {
         if (!ecoData.scoreBreakdown) {
           ecoData.scoreBreakdown = { materials: 0, durability: 0, packaging: 0, locality: 0, brandBonus: 0 };
         }
-      } catch (err) {
+      } catch {
         // Gemini failed — silently fall back to local rule engine
         ecoData = calculateLocalEcoScore(data);
       }
@@ -1656,7 +1656,7 @@ function initEcoCart() {
       // Mark as dismissed for this session
       try {
         sessionStorage.setItem(SESSION_DISMISSED_KEY, 'true');
-      } catch (e) { /* sessionStorage may not be available */ }
+      } catch { /* sessionStorage may not be available */ }
     });
   }
 

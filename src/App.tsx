@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Leaf, BarChart2, Search, Settings as SettingsIcon, Award } from 'lucide-react';
 import { cn } from './lib/utils';
-import PopupDashboard from './views/PopupDashboard';
-import ProductAnalysis from './views/ProductAnalysis';
-import Alternatives from './views/Alternatives';
-import ImpactDashboard from './views/ImpactDashboard';
-import Settings from './views/Settings';
+
+const PopupDashboard = lazy(() => import('./views/PopupDashboard'));
+const ProductAnalysis = lazy(() => import('./views/ProductAnalysis'));
+const Alternatives = lazy(() => import('./views/Alternatives'));
+const ImpactDashboard = lazy(() => import('./views/ImpactDashboard'));
+const Settings = lazy(() => import('./views/Settings'));
 import type { ProductData } from './content';
 import { analyzeProduct, type EcoAnalysis } from './lib/gemini';
 import { calculateLocalEcoScore } from './lib/rules';
@@ -17,14 +18,18 @@ function App() {
   const [currentView, setCurrentView] = useState<ViewState>('popup');
   const [productData, setProductData] = useState<Partial<ProductData> | null>(null);
   const [analysis, setAnalysis] = useState<EcoAnalysis | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     // When popup opens, ask the content script for product data
-    if (!chrome?.tabs) return;
+    if (!chrome?.tabs) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsLoading(false);
+      return;
+    }
 
-    setIsLoading(true);
+
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const activeTab = tabs[0];
       if (activeTab?.id) {
@@ -45,7 +50,7 @@ function App() {
               if (!ecoData.scoreBreakdown) {
                 ecoData.scoreBreakdown = { materials: 0, durability: 0, packaging: 0, locality: 0, brandBonus: 0 };
               }
-            } catch (apiErr) {
+            } catch {
               // Gemini API failed or missing — silently fall back to local rule engine
               ecoData = calculateLocalEcoScore(response);
             }
@@ -54,7 +59,7 @@ function App() {
             
             // Update storage metrics
             await incrementMetrics({
-              totalCO2Saved: ecoData.carbonImpact === 'Low' ? 2.5 : 0, // Mock impact calculation based on rating
+              totalCO2Saved: ecoData.ecoScore > 50 ? Number(((ecoData.ecoScore - 50) * 0.12).toFixed(2)) : 0,
               productsAnalyzed: 1,
               greenChoices: ecoData.ecoScore >= 70 ? 1 : 0
             });
@@ -81,7 +86,7 @@ function App() {
                 }
                 handleResponse(retryResponse);
               });
-            } catch (injectError) {
+            } catch {
               // Failed to inject content script
               setError('Please open a shopping website page to analyze products.');
               setIsLoading(false);
@@ -125,11 +130,13 @@ function App() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-        {currentView === 'popup' && <PopupDashboard onNavigate={setCurrentView} data={productData} analysis={analysis} isLoading={isLoading} error={error} />}
-        {currentView === 'analysis' && <ProductAnalysis analysis={analysis} productData={productData} />}
-        {currentView === 'alternatives' && <Alternatives productData={productData} />}
-        {currentView === 'impact' && <ImpactDashboard />}
-        {currentView === 'settings' && <Settings />}
+        <Suspense fallback={<div className="flex justify-center items-center h-full text-slate-500">Loading...</div>}>
+          {currentView === 'popup' && <PopupDashboard onNavigate={setCurrentView} data={productData} analysis={analysis} isLoading={isLoading} error={error} />}
+          {currentView === 'analysis' && <ProductAnalysis analysis={analysis} productData={productData} />}
+          {currentView === 'alternatives' && <Alternatives productData={productData} />}
+          {currentView === 'impact' && <ImpactDashboard />}
+          {currentView === 'settings' && <Settings />}
+        </Suspense>
       </main>
 
       <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-2 z-10">
