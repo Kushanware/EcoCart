@@ -39,6 +39,7 @@ const POSITIVE_MATERIALS: [string, number, string][] = [
   ['aluminium', 30, '✓ Aluminium is lightweight and widely recyclable'],
   ['aluminum', 30, '✓ Aluminum is lightweight and widely recyclable'],
   ['solid wood', 50, '✓ Solid wood furniture is durable and long-lasting'],
+  ['oak', 45, '✓ Oak is a durable long-lasting hardwood'],
   ['wood', 40, '✓ Wood is a renewable natural material'],
   ['steel', 40, '✓ Steel is highly durable and recyclable'],
   ['ceramic', 30, '✓ Ceramic is a natural, long-lasting material'],

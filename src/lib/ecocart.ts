@@ -54,6 +54,7 @@ const MATERIAL_KEYWORDS = [
   'wood',
   'sheesham',
   'teak',
+  'oak',
   'steel',
   'alloy',
   'polyester',
