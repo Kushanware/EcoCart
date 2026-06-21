@@ -123,7 +123,7 @@ function detectCategory(text: string): ProductCategory {
  * @returns {EcoAnalysis} The comprehensive sustainability analysis.
  */
 export function calculateLocalEcoScore(data: Partial<ProductData>): EcoAnalysis {
-  let strengths: string[] = [];
+  const strengths: string[] = [];
   const concerns: string[] = [];
 
   const textToAnalyze = `${data.title || ''} ${data.description || ''} ${data.material || ''} ${data.category || ''}`.toLowerCase();
