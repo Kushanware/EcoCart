@@ -108,10 +108,13 @@ function extractFlipkartData(): Partial<ProductData> {
 
   let description = '';
   const allLists = document.querySelectorAll('ul');
-  for (const ul of allLists) {
+  for (let i = 0; i < allLists.length; i++) {
+    const ul = allLists[i];
     const items = ul.querySelectorAll('li');
     if (items.length >= 3 && items.length <= 15) {
-      const text = Array.from(items).map(li => li.textContent?.trim()).filter(Boolean).join('. ');
+      const textParts: (string | undefined)[] = [];
+      for (let j = 0; j < items.length; j++) textParts.push(items[j].textContent?.trim());
+      const text = textParts.filter(Boolean).join('. ');
       if (text.length > 50 && text.length < 2000) {
         description = text;
         break;
@@ -125,12 +128,15 @@ function extractFlipkartData(): Partial<ProductData> {
 
   let category = '';
   const breadcrumbContainers = document.querySelectorAll('div[class]');
-  for (const container of breadcrumbContainers) {
+  for (let i = 0; i < breadcrumbContainers.length; i++) {
+    const container = breadcrumbContainers[i];
     const links = container.querySelectorAll(':scope > a');
     if (links.length >= 2 && links.length <= 8) {
-      const crumbs = Array.from(links).map(a => a.textContent?.trim()).filter(Boolean);
-      if (crumbs.some(c => c === 'Home' || c === 'home')) {
-        category = crumbs.join(' > ');
+      const crumbs: (string | undefined)[] = [];
+      for (let j = 0; j < links.length; j++) crumbs.push(links[j].textContent?.trim());
+      const validCrumbs = crumbs.filter(Boolean) as string[];
+      if (validCrumbs.some(c => c === 'Home' || c === 'home')) {
+        category = validCrumbs.join(' > ');
         break;
       }
     }
@@ -144,7 +150,8 @@ function extractFlipkartData(): Partial<ProductData> {
 
   let material = '';
   const allRows = document.querySelectorAll('table tr, div[class] > div[class] > div[class]');
-  for (const row of allRows) {
+  for (let i = 0; i < allRows.length; i++) {
+    const row = allRows[i];
     const cells = row.querySelectorAll('td, div');
     if (cells.length >= 2) {
       const label = cells[0].textContent?.toLowerCase().trim() || '';
@@ -534,7 +541,7 @@ function updateSidebarUI(product: Partial<ProductData>, analysis: EcoAnalysis) {
   }
 
   // 2. Update Progress Ring
-  const ringFg = shadow.getElementById('ring-fg') as SVGPathElement | null;
+  const ringFg = shadow.getElementById('ring-fg') as unknown as SVGPathElement | null;
   const ringText = shadow.getElementById('ring-text');
   if (ringFg) {
     ringFg.setAttribute('stroke-dasharray', `${analysis.ecoScore}, 100`);
