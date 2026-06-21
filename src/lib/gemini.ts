@@ -1,6 +1,9 @@
 import type { ProductData } from '../content';
 import { getApiKey } from './storage';
 
+/**
+ * The internal breakdown of how an EcoScore was calculated.
+ */
 export interface ScoreBreakdown {
   materials: number;
   durability: number;
@@ -9,6 +12,9 @@ export interface ScoreBreakdown {
   brandBonus: number;
 }
 
+/**
+ * The complete sustainability analysis profile returned by either the local rules engine or the Gemini API.
+ */
 export interface EcoAnalysis {
   ecoScore: number;
   carbonImpact: string;
@@ -20,6 +26,13 @@ export interface EcoAnalysis {
   scoreBreakdown: ScoreBreakdown;
 }
 
+/**
+ * Connects to the Google Gemini API to perform advanced natural language sustainability analysis
+ * if the user has provided an API key. Otherwise throws an error to fall back to local rules.
+ *
+ * @param {Partial<ProductData>} data - The extracted product information.
+ * @returns {Promise<EcoAnalysis>} A promise that resolves to the comprehensive sustainability analysis.
+ */
 export async function analyzeProduct(data: Partial<ProductData>): Promise<EcoAnalysis> {
   const apiKey = await getApiKey();
   if (!apiKey) {

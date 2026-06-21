@@ -111,8 +111,19 @@ function detectCategory(text: string): ProductCategory {
   return 'general';
 }
 
+/**
+ * Evaluates a product's environmental footprint strictly based on rule-based heuristics.
+ *
+ * This deterministically assigns an EcoScore (0-100), carbon impact label, and water
+ * usage label by analyzing the product title, explicit material, and description text.
+ * It prioritizes exact material matches in the title over ambiguous description matches
+ * to prevent false positives from related-product suggestions.
+ *
+ * @param {Partial<ProductData>} data - The extracted product information, including title, material, and description.
+ * @returns {EcoAnalysis} The comprehensive sustainability analysis.
+ */
 export function calculateLocalEcoScore(data: Partial<ProductData>): EcoAnalysis {
-  const strengths: string[] = [];
+  let strengths: string[] = [];
   const concerns: string[] = [];
 
   const textToAnalyze = `${data.title || ''} ${data.description || ''} ${data.material || ''} ${data.category || ''}`.toLowerCase();

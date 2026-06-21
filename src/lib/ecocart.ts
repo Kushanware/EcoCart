@@ -11,6 +11,9 @@ export type ProductCategory =
   | 'furniture'
   | 'general';
 
+/**
+ * Raw product data extracted from an online shopping page.
+ */
 export interface ProductLike {
   title?: string;
   description?: string;
@@ -19,12 +22,18 @@ export interface ProductLike {
   brand?: string;
 }
 
+/**
+ * A recommendation for a more sustainable alternative to the current product.
+ */
 export interface AlternativeSuggestion {
   name: string;
   score: number;
   reason: string;
 }
 
+/**
+ * Detailed explanation for a specific aspect of the environmental score.
+ */
 export interface ScoreInsight {
   label: string;
   value: number;
@@ -137,6 +146,12 @@ const CATEGORY_ALTERNATIVES: Record<ProductCategory, AlternativeSuggestion[]> = 
   ],
 };
 
+/**
+ * Determines the general category of a product based on its textual description.
+ *
+ * @param {string} text - The combined title, description, and breadcrumbs text.
+ * @returns {ProductCategory} The identified product category (e.g., 'fashion', 'electronics').
+ */
 export function detectProductCategoryFromText(text: string): ProductCategory {
   const value = text.toLowerCase();
 
@@ -154,6 +169,13 @@ export function detectProductCategoryFromText(text: string): ProductCategory {
   return 'general';
 }
 
+/**
+ * Extracts the primary material of a product from various text sources.
+ * It checks the text against a predefined hierarchy of known materials.
+ *
+ * @param {...Array<string | undefined | null>} sources - Text strings to search (e.g., title, description, specs).
+ * @returns {string} The matched material keyword, or an empty string if none found.
+ */
 export function detectMaterialFromSources(...sources: Array<string | undefined | null>): string {
   const text = sources.filter(Boolean).join(' ').toLowerCase();
   for (const keyword of MATERIAL_KEYWORDS) {
@@ -164,12 +186,25 @@ export function detectMaterialFromSources(...sources: Array<string | undefined |
   return '';
 }
 
+/**
+ * Generates up to three sustainable alternatives based on the product's category.
+ *
+ * @param {ProductLike | null | undefined} product - The current product data.
+ * @returns {AlternativeSuggestion[]} An array of alternative products with reasons.
+ */
 export function getAlternativesForProduct(product: ProductLike | null | undefined): AlternativeSuggestion[] {
   const text = [product?.title, product?.description, product?.material, product?.category].filter(Boolean).join(' ');
   const category = detectProductCategoryFromText(text);
   return CATEGORY_ALTERNATIVES[category].slice(0, 3);
 }
 
+/**
+ * Breaks down the calculated eco-score into readable insights for the UI dashboard.
+ *
+ * @param {ProductLike | null | undefined} product - The current product data.
+ * @param {object} breakdown - The detailed numerical breakdown of the score components.
+ * @returns {ScoreInsight[]} An array of human-readable insights explaining the score.
+ */
 export function getScoreInsights(product: ProductLike | null | undefined, breakdown: { materials: number; durability: number; packaging: number; locality: number; brandBonus: number }): ScoreInsight[] {
   const text = [product?.title, product?.description, product?.material, product?.category].filter(Boolean).join(' ').toLowerCase();
   const brand = (product?.brand || '').toLowerCase();

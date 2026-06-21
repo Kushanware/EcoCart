@@ -5,6 +5,7 @@
 # 🌿 EcoCart AI
 
 ![Tests](https://img.shields.io/badge/tests-36%20passing-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-85%25-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
 ![Chrome Extension](https://img.shields.io/badge/MV3-Chrome-orange)
 **EcoCart AI** is a Chrome Extension that calculates the environmental footprint of products while you shop online, helping you make greener choices. Built for the PromptWars Hackathon, it runs **totally locally** with a robust, deterministic rule engine to deliver reliable sustainability scoring. It also features an **optional Gemini AI integration**—if you provide an API key, it unlocks deeper, natural language insights.
@@ -16,6 +17,24 @@
 EcoCart AI seamlessly integrates into your online shopping experience. When you visit **any supported shopping website**, the extension **automatically detects** the e-commerce site, opens a sleek sidebar panel, and shows real-time sustainability stats. On product pages, it extracts product details (materials, description, title) and provides an **Eco Score (0-100)**, estimating carbon impact and water usage.
 
 It highlights the strengths and concerns of a product's manufacturing footprint and suggests greener alternatives.
+
+---
+
+## 🔬 Sustainability Scoring Methodology
+
+EcoCart AI uses a deterministic, rule-based inference engine that processes unstructured product data without relying on an external API (unless the optional Gemini integration is enabled).
+
+**1. Data Extraction & Prioritization:**
+The engine extracts the product `Title`, `Description`, and specific `Material` specs. It evaluates these strings against a hierarchical dictionary of over 60 known materials. To prevent false positives (e.g., scoring a plastic chair highly because its description mentions "wood polish"), the system strictly prioritizes direct material matches found in the `Title` over the `Description`.
+
+**2. The Scoring Algorithm (0-100):**
+The final **EcoScore** is composed of several weighted factors:
+- **Base Material (Up to 60 points):** Raw materials are ranked strictly on their carbon and water footprints. For instance, solid woods (Oak, Sheesham) and glass score highly (45-50 points) due to their renewable and infinitely recyclable nature. Petroleum-based plastics (PVC, Polyester, Nylon) score near 0.
+- **Durability & Reusability (Up to 40 points):** The engine awards bonus points for keywords indicating extended lifespans, such as `refillable`, `reusable`, `warranty`, and `durable`.
+- **Negative Modifiers:** Points are aggressively deducted for terms indicating "single-use", "toxic chemicals", or "disposable".
+
+**3. Carbon & Water Impact Labels:**
+The system maps the numeric score and specific material flags to a qualitative label (Low, Medium, High, or Very High Impact). For example, conventional cotton heavily flags the "Water Usage" metric due to its intensive agricultural requirements, despite being a natural fiber.
 
 ---
 
