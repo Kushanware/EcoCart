@@ -75,7 +75,7 @@ function App() {
               
               chrome.tabs.sendMessage(activeTab.id as number, { action: 'extract_product' }, (retryResponse) => {
                 if (chrome.runtime.lastError || !retryResponse) {
-                  setError('Could not connect to the page. Please refresh the page and try again.');
+                  setError('Please open a shopping website page to analyze products.');
                   setIsLoading(false);
                   return;
                 }
@@ -83,7 +83,7 @@ function App() {
               });
             } catch (injectError) {
               // Failed to inject content script
-              setError('Could not connect to the page. Please refresh the page and try again.');
+              setError('Please open a shopping website page to analyze products.');
               setIsLoading(false);
             }
             return;
