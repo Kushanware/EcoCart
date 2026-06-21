@@ -1,6 +1,10 @@
+<p align="center">
+  <img src="screenshots/logo.png" alt="EcoCart Logo" width="120" />
+</p>
+
 # 🌿 EcoCart AI
 
-**EcoCart AI** is a Chrome Extension that calculates the environmental footprint of products while you shop online, helping you make greener choices. Built for the PromptWars Hackathon, it combines a robust, deterministic local rule engine with the power of Gemini AI to deliver reliable and insightful sustainability scoring.
+**EcoCart AI** is a Chrome Extension that calculates the environmental footprint of products while you shop online, helping you make greener choices. Built for the PromptWars Hackathon, it runs **totally locally** with a robust, deterministic rule engine to deliver reliable sustainability scoring. It also features an **optional Gemini AI integration**—if you provide an API key, it unlocks deeper, natural language insights.
 
 ---
 
@@ -12,6 +16,18 @@ It highlights the strengths and concerns of a product's manufacturing footprint 
 
 ---
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="screenshots/screenshot1.png" alt="Screenshot 1" width="30%" />
+  &nbsp;
+  <img src="screenshots/screenshot2.png" alt="Screenshot 2" width="30%" />
+  &nbsp;
+  <img src="screenshots/screenshot3.png" alt="Screenshot 3" width="30%" />
+</p>
+
+---
+
 ## 🏗️ Architecture & AI Workflow
 
 EcoCart uses a **Hybrid Architecture** prioritizing speed, reliability, and explainability.
@@ -19,8 +35,8 @@ EcoCart uses a **Hybrid Architecture** prioritizing speed, reliability, and expl
 1. **Shopping Site Detection**: A multi-signal detection engine identifies e-commerce websites using domain matching (50+ stores), platform fingerprinting (Shopify, WooCommerce, Magento), DOM analysis (cart links, add-to-cart buttons), and structured data (JSON-LD Product schemas, price metadata).
 2. **Extraction**: A content script scrapes the product page for relevant metadata (title, materials, description) with site-specific extractors for Amazon, Flipkart, and a powerful generic extractor for all other sites.
 3. **Local Rule Engine (Layer 1)**: The core Eco Score, Carbon Impact, and Water Usage are calculated using a deterministic local rule engine. This ensures the extension is blazing fast, perfectly testable, and highly explainable (e.g., Organic Cotton = +20 Score, -200L Water).
-4. **Gemini AI Integration (Layer 2)**: Gemini is used to generate natural language explanations and dynamic recommendations based on the core score.
-5. **Resilience**: The system features an automatic fallback. If the Gemini API key is missing or the API fails, the extension instantly falls back to the Local Rule Engine, ensuring 100% of core features remain perfectly functional without AI.
+4. **Optional Gemini AI Integration (Layer 2)**: If you choose to add your API key, Gemini unlocks natural language explanations and dynamic recommendations based on the core score.
+5. **Local-First by Design**: The extension requires no internet calls to our servers. It is perfectly functional and blazing fast out-of-the-box as a totally local extension, ensuring your privacy and reliability.
 
 ---
 
