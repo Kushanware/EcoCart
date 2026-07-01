@@ -8,7 +8,7 @@ const Alternatives = lazy(() => import('./views/Alternatives'));
 const ImpactDashboard = lazy(() => import('./views/ImpactDashboard'));
 const Settings = lazy(() => import('./views/Settings'));
 import type { ProductData } from './content';
-import { analyzeProduct, type EcoAnalysis } from './lib/gemini';
+import type { EcoAnalysis } from './lib/gemini';
 import { calculateLocalEcoScore } from './lib/rules';
 import { incrementMetrics } from './lib/storage';
 
@@ -43,17 +43,8 @@ function App() {
           setProductData(response);
           
           try {
-            let ecoData: EcoAnalysis;
-            try {
-              ecoData = await analyzeProduct(response);
-              // Gemini doesn't return scoreBreakdown, so add a default
-              if (!ecoData.scoreBreakdown) {
-                ecoData.scoreBreakdown = { materials: 0, durability: 0, packaging: 0, locality: 0, brandBonus: 0 };
-              }
-            } catch {
-              // Gemini API failed or missing — silently fall back to local rule engine
-              ecoData = calculateLocalEcoScore(response);
-            }
+            // Always use local rule engine now
+            const ecoData = calculateLocalEcoScore(response);
             
             setAnalysis(ecoData);
             

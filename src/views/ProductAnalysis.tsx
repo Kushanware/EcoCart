@@ -1,8 +1,10 @@
-import { Leaf, Lightbulb, AlertTriangle, BarChart3 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Leaf, Lightbulb, AlertTriangle, BarChart3, Loader2, Sparkles } from 'lucide-react';
 import { EcoScore } from '../components/ui/EcoScore';
 import type { ProductData } from '../content';
 import { getScoreInsights } from '../lib/ecocart';
 import type { EcoAnalysis } from '../lib/gemini';
+import { LocalAIEngine } from '../lib/localAi';
 
 interface AnalysisProps {
   analysis: EcoAnalysis | null;
@@ -23,6 +25,33 @@ function BreakdownBar({ label, score, max, color }: { label: string; score: numb
 }
 
 export default function ProductAnalysis({ analysis, productData }: AnalysisProps) {
+  const [explanation, setExplanation] = useState(analysis?.recommendations || "");
+  const [alternatives, setAlternatives] = useState<string[]>([]);
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+
+  useEffect(() => {
+    if (!analysis || !productData) return;
+    
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExplanation(analysis.recommendations || "");
+    
+    const useLocalAI = localStorage.getItem('useLocalAI') === 'true';
+    if (useLocalAI) {
+      setIsLoadingInsights(true);
+      const title = productData.title || '';
+      const materials = productData.material ? [productData.material] : [];
+      
+      LocalAIEngine.generateEcoInsights(title, analysis.ecoScore, materials).then(insights => {
+        setExplanation(insights.explanation);
+        setAlternatives(insights.alternatives);
+        setIsLoadingInsights(false);
+      }).catch(err => {
+        console.error(err);
+        setIsLoadingInsights(false);
+      });
+    }
+  }, [analysis, productData]);
+
   if (!analysis) return null;
 
   const bd = analysis.scoreBreakdown;
@@ -114,16 +143,32 @@ export default function ProductAnalysis({ analysis, productData }: AnalysisProps
 
       <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-100 dark:border-slate-700 mt-2 relative overflow-hidden">
         <div className="absolute top-2 right-2 text-slate-200 dark:text-slate-700">
-          <Lightbulb className="w-16 h-16 opacity-50" />
+          {isLoadingInsights ? <Sparkles className="w-16 h-16 opacity-50 animate-pulse text-eco-500" /> : <Lightbulb className="w-16 h-16 opacity-50" />}
         </div>
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-2">
-            <Lightbulb className="w-5 h-5 text-yellow-500" />
-            <h3 className="font-bold text-slate-900 dark:text-slate-100">Recommendation</h3>
+            {isLoadingInsights ? <Loader2 className="w-5 h-5 text-eco-500 animate-spin" /> : <Lightbulb className="w-5 h-5 text-yellow-500" />}
+            <h3 className="font-bold text-slate-900 dark:text-slate-100">
+              {isLoadingInsights ? 'Gemini Nano is thinking...' : 'Recommendation'}
+            </h3>
           </div>
           <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-            {analysis.recommendations}
+            {explanation}
           </p>
+          
+          {alternatives.length > 0 && !isLoadingInsights && (
+            <div className="mt-4">
+              <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2 uppercase tracking-wider">Greener Alternatives:</h4>
+              <ul className="space-y-1">
+                {alternatives.map((alt, i) => (
+                  <li key={i} className="text-sm text-eco-700 dark:text-eco-400 flex items-start gap-2">
+                    <span className="text-eco-500 mt-0.5">•</span>
+                    <span>{alt}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>

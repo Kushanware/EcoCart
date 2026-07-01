@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Moon, Shield, Sparkles, Key } from 'lucide-react';
-import { getApiKey, saveApiKey } from '../lib/storage';
+import { Moon, Shield, Sparkles } from 'lucide-react';
+import { LocalAIEngine } from '../lib/localAi';
 
 export default function Settings() {
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
   const [aiModel, setAiModel] = useState('Gemini 3.1 Pro (High)');
-  const [apiKey, setApiKeyValue] = useState('');
-  const [isSaved, setIsSaved] = useState(false);
+  
+  const [aiStatus, setAiStatus] = useState<'ready' | 'downloading' | 'unsupported'>('unsupported');
+  const [useLocalAI, setUseLocalAI] = useState(() => localStorage.getItem('useLocalAI') === 'true');
 
   useEffect(() => {
-    getApiKey().then(setApiKeyValue);
+    async function verifyHardware() {
+      const status = await LocalAIEngine.checkAvailability();
+      setAiStatus(status);
+    }
+    verifyHardware();
   }, []);
 
   const toggleDark = () => {
@@ -23,13 +28,6 @@ export default function Settings() {
     const models = ['Gemini 3.1 Pro (High)', 'Gemini 3.1 Flash', 'EcoCart Lite AI'];
     const idx = models.indexOf(aiModel);
     setAiModel(models[(idx + 1) % models.length]);
-  };
-
-  const handleSaveKey = () => {
-    saveApiKey(apiKey).then(() => {
-      setIsSaved(true);
-      setTimeout(() => setIsSaved(false), 2000);
-    });
   };
 
   return (
@@ -72,27 +70,33 @@ export default function Settings() {
         </div>
 
         <div className="p-4 flex flex-col gap-2 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
-              <Key className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <Sparkles className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+              </div>
+              <div>
+                <span className="block text-sm font-medium text-slate-800 dark:text-slate-100">On-Device Gemini Nano AI</span>
+                <span className="block text-xs text-slate-500 dark:text-slate-400">Processes recommendations locally via GPU</span>
+              </div>
             </div>
-            <div>
-              <span className="block text-sm font-medium text-slate-800 dark:text-slate-100">Gemini API Key</span>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">Required for analysis</span>
-            </div>
-          </div>
-          <div className="flex gap-2 mt-1">
+            
             <input 
-              type="password" 
-              value={apiKey} 
-              onChange={e => setApiKeyValue(e.target.value)} 
-              placeholder="Enter your API Key" 
-              aria-label="Gemini API Key"
-              className="flex-1 px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-eco-500"
+              type="checkbox"
+              disabled={aiStatus !== 'ready'}
+              checked={useLocalAI}
+              onChange={(e) => {
+                setUseLocalAI(e.target.checked);
+                localStorage.setItem('useLocalAI', e.target.checked.toString());
+              }}
+              className="w-5 h-5 accent-eco-600"
             />
-            <button onClick={handleSaveKey} aria-label="Save API Key" className="px-4 py-2 bg-eco-600 text-white text-sm font-semibold rounded-lg hover:bg-eco-700 transition-colors">
-              {isSaved ? 'Saved!' : 'Save'}
-            </button>
+          </div>
+
+          <div className="mt-2 text-xs pl-12">
+            {aiStatus === 'ready' && <span className="text-green-600 dark:text-green-400 font-bold">● Active (Running on Local GPU)</span>}
+            {aiStatus === 'downloading' && <span className="text-amber-600 dark:text-amber-400 font-bold">🔄 Chrome is downloading Gemini Nano (4GB)... Check chrome://components</span>}
+            {aiStatus === 'unsupported' && <span className="text-red-600 dark:text-red-400 font-bold">❌ Hardware or browser unsupported (Requires Chrome 148+, 4GB VRAM).</span>}
           </div>
         </div>
 

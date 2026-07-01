@@ -3,6 +3,7 @@ import type { ViewState } from '../App';
 import { EcoScore } from '../components/ui/EcoScore';
 import type { ProductData } from '../content';
 import type { EcoAnalysis } from '../lib/gemini';
+import EcoCartRecommendations from '../components/EcoCartRecommendations';
 
 interface PopupProps {
   onNavigate: (view: ViewState) => void;
@@ -112,6 +113,8 @@ export default function PopupDashboard({ onNavigate, data, analysis, isLoading, 
           ))}
         </ul>
       </div>
+
+      <EcoCartRecommendations productData={data} />
 
       <button 
         onClick={() => onNavigate('analysis')}
